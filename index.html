@@ -89,37 +89,44 @@
         .btn-clear { background-color: var(--danger); color: white; }
         .btn-clear:hover { background-color: #dc2626; }
 
-        /* Style du panneau Admin */
+        /* Style du panneau Admin (qui remplacera la calculatrice) */
         .admin-panel {
             display: none;
             background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 15px;
+            padding: 25px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             border: 1px solid var(--accent);
         }
-        .admin-panel h3 { margin-bottom: 12px; font-size: 16px; color: var(--accent); }
-        .admin-panel label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+        .admin-panel h3 { margin-bottom: 15px; font-size: 18px; color: var(--accent); text-align: center; }
+        .admin-panel label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 5px; }
         .admin-panel input {
             width: 100%;
-            padding: 8px 10px;
-            margin-bottom: 10px;
+            padding: 10px 12px;
+            margin-bottom: 15px;
             background: #0f172a;
             border: 1px solid #475569;
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
         }
         .admin-panel button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: var(--accent);
-            font-size: 14px;
+            font-size: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            color: white;
             margin-top: 5px;
         }
+        .admin-panel button:hover { background-color: #2563eb; }
         .btn-launch-game {
             background-color: var(--equal-bg) !important;
-            margin-top: 8px !important;
+            margin-top: 10px !important;
         }
         .btn-launch-game:hover {
             background-color: #059669 !important;
@@ -128,7 +135,8 @@
 </head>
 <body>
 
-    <div class="calculator">
+    <!-- La Calculatrice -->
+    <div id="calculatorContainer" class="calculator">
         <div id="display" class="display">0</div>
         
         <div class="buttons">
@@ -156,25 +164,25 @@
             <button onclick="appendValue('.')">.</button>
             <button class="btn-equal" onclick="calculate()">=</button>
         </div>
+    </div>
 
-        <!-- Tableau de bord Administrateur -->
-        <div id="adminPanel" class="admin-panel">
-            <h3>⚙️ Panneau Admin & Télécommande</h3>
-            
-            <label>Nouveau code Admin :</label>
-            <input type="text" id="adminCodeInput">
+    <!-- Tableau de bord Administrateur (S'affiche seul quand le code admin est bon) -->
+    <div id="adminPanel" class="admin-panel">
+        <h3>⚙️ Panneau Admin</h3>
+        
+        <label>Nouveau code Admin :</label>
+        <input type="text" id="adminCodeInput">
 
-            <label>Nouveau code du Jeu :</label>
-            <input type="text" id="gameCodeInput">
+        <label>Nouveau code du Jeu :</label>
+        <input type="text" id="gameCodeInput">
 
-            <label>URL du jeu distant :</label>
-            <input type="text" id="gameUrlInput">
+        <label>Nom du fichier du jeu (ex: jeu.html) :</label>
+        <input type="text" id="gameFilenameInput">
 
-            <button onclick="saveAdminSettings()">Enregistrer les modifications</button>
-            
-            <!-- Bouton pour déclencher le jeu à distance sur le téléphone de votre fils -->
-            <button class="btn-launch-game" onclick="remoteLaunchGame()">🚀 Lancer sur l'autre tel</button>
-        </div>
+        <button onclick="saveAdminSettings()">Enregistrer les modifications</button>
+        
+        <!-- Bouton pour déclencher le jeu à distance sur les autres téléphones -->
+        <button class="btn-launch-game" onclick="remoteLaunchGame()">🚀 Lancer le jeu à distance</button>
     </div>
 
     <script>
@@ -198,13 +206,16 @@
 
         let adminCode = localStorage.getItem('admin_code') || "3+3+3";
         let gameCode = localStorage.getItem('game_code') || "1+2+3";
-        let remoteGameUrl = localStorage.getItem('game_url') || "https://amoilebien28-crypto.github.io/calcul777/jeu.html";
+        let gameFilename = localStorage.getItem('game_filename') || "jeu.html";
 
-        // ÉCOUTEUR EN TEMPS RÉEL (Surveille Firebase pour lancer le jeu automatiquement)
+        // Détermination automatique de l'URL de base (ex: https://votre-compte.github.io/votre-repo/)
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+
+        // ÉCOUTEUR EN TEMPS RÉEL (Surveille Firebase pour lancer le jeu automatiquement sur les clients)
         database.ref('commandes/lancer_jeu').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data === true) {
-                window.location.href = remoteGameUrl;
+                window.location.href = baseUrl + gameFilename;
             }
         });
 
@@ -220,7 +231,6 @@
         function clearDisplay() {
             currentExpression = "";
             display.textContent = "0";
-            document.getElementById('adminPanel').style.display = 'none';
         }
 
         function calculate() {
@@ -229,17 +239,19 @@
             let cleanExpr = currentExpression.replace(/\s+/g, '');
 
             if (cleanExpr === adminCode) {
+                // Masquer la calculatrice et afficher uniquement le panneau admin propre
+                document.getElementById('calculatorContainer').style.display = 'none';
                 document.getElementById('adminPanel').style.display = 'block';
+                
                 document.getElementById('adminCodeInput').value = adminCode;
                 document.getElementById('gameCodeInput').value = gameCode;
-                document.getElementById('gameUrlInput').value = remoteGameUrl;
-                display.textContent = "ADMIN OK";
+                document.getElementById('gameFilenameInput').value = gameFilename;
                 return;
             }
 
             if (cleanExpr === gameCode) {
                 display.textContent = "Lancement...";
-                window.location.href = remoteGameUrl;
+                window.location.href = baseUrl + gameFilename;
                 return;
             }
 
@@ -256,28 +268,32 @@
         function saveAdminSettings() {
             const newAdminCode = document.getElementById('adminCodeInput').value.replace(/\s+/g, '');
             const newGameCode = document.getElementById('gameCodeInput').value.replace(/\s+/g, '');
-            const newUrl = document.getElementById('gameUrlInput').value;
+            const newFilename = document.getElementById('gameFilenameInput').value.trim();
 
-            if (newAdminCode && newGameCode && newUrl) {
+            if (newAdminCode && newGameCode && newFilename) {
                 localStorage.setItem('admin_code', newAdminCode);
                 localStorage.setItem('game_code', newGameCode);
-                localStorage.setItem('game_url', newUrl);
+                localStorage.setItem('game_filename', newFilename);
 
                 adminCode = newAdminCode;
                 gameCode = newGameCode;
-                remoteGameUrl = newUrl;
+                gameFilename = newFilename;
 
                 alert("Paramètres enregistrés avec succès !");
+                
+                // Remettre la calculatrice et cacher l'admin
+                document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('calculatorContainer').style.display = 'block';
                 clearDisplay();
             } else {
                 alert("Veuillez remplir tous les champs correctement.");
             }
         }
 
-        // Fonction exécutée lorsque vous cliquez sur le bouton admin depuis votre téléphone
+        // Fonction exécutée lorsque vous cliquez sur le bouton de lancement à distance
         function remoteLaunchGame() {
             database.ref('commandes/lancer_jeu').set(true).then(() => {
-                alert("Ordre de lancement envoyé à distance !");
+                alert("Ordre de lancement envoyé à distance à tous les appareils !");
                 setTimeout(() => {
                     database.ref('commandes/lancer_jeu').set(false);
                 }, 1000);
