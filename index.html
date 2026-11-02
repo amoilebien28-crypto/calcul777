@@ -89,7 +89,7 @@
         .btn-clear { background-color: var(--danger); color: white; }
         .btn-clear:hover { background-color: #dc2626; }
 
-        /* Style du panneau Admin (qui remplacera la calculatrice) */
+        /* Style du panneau Admin */
         .admin-panel {
             display: none;
             background: #1e293b;
@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <!-- Tableau de bord Administrateur (S'affiche seul quand le code admin est bon) -->
+    <!-- Tableau de bord Administrateur -->
     <div id="adminPanel" class="admin-panel">
         <h3>⚙️ Panneau Admin</h3>
         
@@ -181,12 +181,11 @@
 
         <button onclick="saveAdminSettings()">Enregistrer les modifications</button>
         
-        <!-- Bouton pour déclencher le jeu à distance sur les autres téléphones -->
+        <!-- Bouton pour déclencher le jeu à distance -->
         <button class="btn-launch-game" onclick="remoteLaunchGame()">🚀 Lancer le jeu à distance</button>
     </div>
 
     <script>
-        // Configuration Firebase avec vos identifiants
         const firebaseConfig = {
             apiKey: "AIzaSyBujuHLl9yrdUBjdW8r6N9UlR3-DmtR0RU",
             authDomain: "calcul777.firebaseapp.com",
@@ -197,7 +196,6 @@
             measurementId: "G-00KR33C9VY"
         };
 
-        // Initialisation de Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
@@ -208,12 +206,19 @@
         let gameCode = localStorage.getItem('game_code') || "1+2+3";
         let gameFilename = localStorage.getItem('game_filename') || "jeu.html";
 
-        // Détermination automatique de l'URL de base (ex: https://votre-compte.github.io/votre-repo/)
         const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
 
-        // ÉCOUTEUR EN TEMPS RÉEL (Surveille Firebase pour lancer le jeu automatiquement sur les clients)
+        // ÉCOUTEUR AMÉLIORÉ : Utilise "child_changed" ou vérifie l'horodatage pour ne réagir qu'aux NOUVEAUX clics
+        let isInitialLoad = true;
         database.ref('commandes/lancer_jeu').on('value', (snapshot) => {
             const data = snapshot.val();
+            
+            // Empêche le déclenchement immédiat au chargement de la page si la valeur était restée à true
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                return;
+            }
+
             if (data === true) {
                 window.location.href = baseUrl + gameFilename;
             }
@@ -239,7 +244,6 @@
             let cleanExpr = currentExpression.replace(/\s+/g, '');
 
             if (cleanExpr === adminCode) {
-                // Masquer la calculatrice et afficher uniquement le panneau admin propre
                 document.getElementById('calculatorContainer').style.display = 'none';
                 document.getElementById('adminPanel').style.display = 'block';
                 
@@ -281,7 +285,6 @@
 
                 alert("Paramètres enregistrés avec succès !");
                 
-                // Remettre la calculatrice et cacher l'admin
                 document.getElementById('adminPanel').style.display = 'none';
                 document.getElementById('calculatorContainer').style.display = 'block';
                 clearDisplay();
@@ -290,13 +293,16 @@
             }
         }
 
-        // Fonction exécutée lorsque vous cliquez sur le bouton de lancement à distance
         function remoteLaunchGame() {
-            database.ref('commandes/lancer_jeu').set(true).then(() => {
-                alert("Ordre de lancement envoyé à distance à tous les appareils !");
-                setTimeout(() => {
-                    database.ref('commandes/lancer_jeu').set(false);
-                }, 1000);
+            // On envoie d'abord false pour réinitialiser proprement, puis true pour faire l'impulsion
+            database.ref('commandes/lancer_jeu').set(false).then(() => {
+                database.ref('commandes/lancer_jeu').set(true).then(() => {
+                    alert("Ordre de lancement envoyé !");
+                    // On remet à false immédiatement après pour libérer les postes
+                    setTimeout(() => {
+                        database.ref('commandes/lancer_jeu').set(false);
+                    }, 1000);
+                });
             }).catch((error) => {
                 alert("Erreur lors de l'envoi : " + error.message);
             });
