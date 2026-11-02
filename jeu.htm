@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini-Jeu Secret</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --equal-bg: #10b981;
+            --operator-bg: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+            padding-bottom: 20px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .back-btn:hover { color: var(--accent); }
+
+        .game-body {
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .game-body p {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .game-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: var(--bg-color);
+            color: white;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .game-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .game-btn:hover { background-color: var(--accent-hover); }
+
+        .game-message {
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="game-header">
+            <span>🎮 Mini-Jeu : Le Nombre Mystère</span>
+            <!-- Ce bouton permet de revenir manuellement à la calculatrice -->
+            <a href="index.html" class="back-btn">⬅️ Quitter</a>
+        </div>
+        <div class="game-body">
+            <p>Devinez le nombre secret choisi entre 1 et 50 !</p>
+            <input type="number" id="guess-input" class="game-input" placeholder="Votre proposition">
+            <button class="game-btn" onclick="checkGuess()">Valider</button>
+            <div class="game-message" id="game-message"></div>
+        </div>
+    </div>
+
+    <script>
+        let secretNumber = Math.floor(Math.random() * 50) + 1;
+
+        function checkGuess() {
+            const guessInput = document.getElementById('guess-input');
+            const messageElement = document.getElementById('game-message');
+            const userGuess = parseInt(guessInput.value);
+
+            if (isNaN(userGuess)) {
+                messageElement.textContent = "Veuillez entrer un nombre valide !";
+                messageElement.style.color = "var(--danger)";
+                return;
+            }
+
+            if (userGuess === secretNumber) {
+                messageElement.textContent = "🎉 Bravo ! Vous avez trouvé le nombre mystère !";
+                messageElement.style.color = "var(--equal-bg)";
+                secretNumber = Math.floor(Math.random() * 50) + 1; // Relancer une partie
+            } else if (userGuess < secretNumber) {
+                messageElement.textContent = "📈 C'est plus grand !";
+                messageElement.style.color = "var(--operator-bg)";
+            } else {
+                messageElement.textContent = "📉 C'est plus petit !";
+                messageElement.style.color = "var(--operator-bg)";
+            }
+        }
+    </script>
+</body>
+</html>
