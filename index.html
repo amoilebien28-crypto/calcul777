@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculatrice Modulaire</title>
+    <title>Calculatrice Secrète</title>
     <style>
         :root {
             --bg-color: #0f172a;
-            --card-bg: #1e293b;
+            --calc-bg: #1e293b;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --btn-bg: #334155;
-            --btn-hover: #475569;
-            --operator-bg: #f59e0b;
             --equal-bg: #10b981;
+            --operator-bg: #f59e0b;
             --danger: #ef4444;
         }
 
@@ -36,348 +33,189 @@
             padding: 20px;
         }
 
-        .view {
-            display: none;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .view.active {
-            display: block;
-        }
-
-        .calculator-container, .panel-container {
-            background-color: var(--card-bg);
+        .calculator {
+            background-color: var(--calc-bg);
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             width: 100%;
+            max-width: 360px;
             overflow: hidden;
-            padding-bottom: 10px;
+            padding: 20px;
         }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .back-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .back-btn:hover { color: var(--accent); }
 
         .display {
+            background-color: #0f172a;
+            color: var(--text-primary);
+            font-size: 24px;
             padding: 20px;
             text-align: right;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            min-height: 70px;
             word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            border: 1px solid #334155;
         }
 
-        .previous-operand {
-            color: var(--text-secondary);
-            font-size: 14px;
-            min-height: 20px;
-        }
-
-        .current-operand {
-            color: var(--text-primary);
-            font-size: 36px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-
-        .buttons-grid {
+        .buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            padding: 20px;
+            gap: 12px;
         }
 
-        button.btn {
-            background-color: var(--btn-bg);
+        button {
+            background-color: #334155;
             color: var(--text-primary);
             border: none;
-            border-radius: 12px;
-            padding: 15px;
+            padding: 18px;
             font-size: 18px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-
-        button.btn:hover { background-color: var(--btn-hover); }
-        button.btn:active { transform: scale(0.95); }
-        button.operator { background-color: rgba(245, 158, 11, 0.2); color: var(--operator-bg); }
-        button.equals { background-color: var(--equal-bg); color: white; grid-column: span 2; }
-
-        .panel-body {
-            padding: 25px 20px;
-        }
-
-        .panel-body p {
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--btn-hover);
-            background: var(--bg-color);
-            color: white;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .action-btn {
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
             transition: background 0.2s;
-            margin-bottom: 15px;
-        }
-        .action-btn:hover { background-color: var(--accent-hover); }
-
-        .msg {
-            margin-top: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            text-align: center;
         }
 
-        .setting-box {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        button:hover { background-color: #475569; }
+        .btn-operator { background-color: var(--operator-bg); color: white; }
+        .btn-operator:hover { background-color: #d97706; }
+        .btn-equal { background-color: var(--equal-bg); color: white; grid-column: span 2; }
+        .btn-equal:hover { background-color: #059669; }
+        .btn-clear { background-color: var(--danger); color: white; }
+        .btn-clear:hover { background-color: #dc2626; }
+
+        /* Style du panneau Admin */
+        .admin-panel {
+            display: none;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 1px solid var(--accent);
+        }
+        .admin-panel h3 { margin-bottom: 10px; font-size: 16px; color: var(--accent); }
+        .admin-panel input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 6px;
+        }
+        .admin-panel button {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent);
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. VUE CALCULATRICE -->
-    <div class="view active" id="view-calc">
-        <div class="calculator-container">
-            <div class="panel-header">
-                <span>Calculatrice Standard</span>
-            </div>
-            <div class="display">
-                <div class="previous-operand" id="previous-operand"></div>
-                <div class="current-operand" id="current-operand">0</div>
-            </div>
-            <div class="buttons-grid">
-                <button class="btn operator" onclick="clearDisplay()">AC</button>
-                <button class="btn operator" onclick="deleteDigit()">⌫</button>
-                <button class="btn operator" onclick="appendOperator('%')">%</button>
-                <button class="btn operator" onclick="appendOperator('/')">÷</button>
-
-                <button class="btn" onclick="appendNumber('7')">7</button>
-                <button class="btn" onclick="appendNumber('8')">8</button>
-                <button class="btn" onclick="appendNumber('9')">9</button>
-                <button class="btn operator" onclick="appendOperator('*')">×</button>
-
-                <button class="btn" onclick="appendNumber('4')">4</button>
-                <button class="btn" onclick="appendNumber('5')">5</button>
-                <button class="btn" onclick="appendNumber('6')">6</button>
-                <button class="btn operator" onclick="appendOperator('-')">-</button>
-
-                <button class="btn" onclick="appendNumber('1')">1</button>
-                <button class="btn" onclick="appendNumber('2')">2</button>
-                <button class="btn" onclick="appendNumber('3')">3</button>
-                <button class="btn operator" onclick="appendOperator('+')">+</button>
-
-                <button class="btn" onclick="appendNumber('0')">0</button>
-                <button class="btn" onclick="appendNumber('.')">.</button>
-                <button class="btn equals" onclick="compute()">=</button>
-            </div>
+    <div class="calculator">
+        <div id="display" class="display">0</div>
+        
+        <div class="buttons">
+            <button class="btn-clear" onclick="clearDisplay()">C</button>
+            <button onclick="appendValue('(')">(</button>
+            <button onclick="appendValue(')')">)</button>
+            <button class="btn-operator" onclick="appendValue('/')">/</button>
+            
+            <button onclick="appendValue('7')">7</button>
+            <button onclick="appendValue('8')">8</button>
+            <button onclick="appendValue('9')">9</button>
+            <button class="btn-operator" onclick="appendValue('*')">*</button>
+            
+            <button onclick="appendValue('4')">4</button>
+            <button onclick="appendValue('5')">5</button>
+            <button onclick="appendValue('6')">6</button>
+            <button class="btn-operator" onclick="appendValue('-')">-</button>
+            
+            <button onclick="appendValue('1')">1</button>
+            <button onclick="appendValue('2')">2</button>
+            <button onclick="appendValue('3')">3</button>
+            <button class="btn-operator" onclick="appendValue('+')">+</button>
+            
+            <button onclick="appendValue('0')">0</button>
+            <button onclick="appendValue('.')">.</button>
+            <button class="btn-equal" onclick="calculate()">=</button>
         </div>
-    </div>
 
-    <!-- 2. VUE TABLEAU DE BORD ADMIN (Séparé) -->
-    <div class="view" id="view-admin">
-        <div class="panel-container">
-            <div class="panel-header">
-                <span>⚙️ Tableau de Bord Admin</span>
-                <button class="back-btn" onclick="returnToCalc()">⬅️ Quitter</button>
-            </div>
-            <div class="panel-body">
-                <div class="setting-box">
-                    <p><strong>Code secret pour ouvrir l'Admin :</strong></p>
-                    <input type="text" id="input-admin-code" class="form-input" placeholder="Ex: 1111">
-                    <button class="action-btn" onclick="saveAdminCode()">Enregistrer le code Admin</button>
-                </div>
-
-                <div class="setting-box">
-                    <p><strong>Code secret pour lancer le Jeu :</strong></p>
-                    <input type="text" id="input-game-code" class="form-input" placeholder="Ex: 2222">
-                    <button class="action-btn" onclick="saveGameCode()" style="background-color: var(--operator-bg);">Enregistrer le code du Jeu</button>
-                </div>
-
-                <div class="setting-box">
-                    <p><strong>URL du Jeu Distant (GitHub Pages / Firebase) :</strong></p>
-                    <input type="text" id="input-game-url" class="form-input" placeholder="https://votre-site.com/jeu.html">
-                    <button class="action-btn" onclick="saveGameUrl()" style="background-color: var(--equal-bg);">Enregistrer l'URL du Jeu</button>
-                </div>
-
-                <div class="msg" id="admin-msg"></div>
-            </div>
+        <!-- Tableau de bord Administrateur caché par défaut -->
+        <div id="adminPanel" class="admin-panel">
+            <h3>⚙️ Panneau Admin</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">URL du jeu distant :</p>
+            <input type="text" id="gameUrlInput" placeholder="https://.../jeu.html">
+            <button onclick="saveGameUrl()">Enregistrer l'URL</button>
         </div>
     </div>
 
     <script>
-        // Récupération des paramètres enregistrés en mémoire
-        let adminCode = localStorage.getItem('admin_code') || "1111";
-        let gameCode = localStorage.getItem('game_code') || "2222";
-        let gameUrl = localStorage.getItem('game_url') || "https://example.com/jeu"; // Lien par défaut
+        let currentExpression = "";
+        const display = document.getElementById('display');
 
-        let currentOperandElement = document.getElementById('current-operand');
-        let previousOperandElement = document.getElementById('previous-operand');
-        let currentOperand = '0';
-        let previousOperand = '';
+        // Codes secrets par défaut (peuvent être des équations textuelles complètes)
+        let adminCode = localStorage.getItem('admin_code') || "5+5+5";
+        let gameCode = localStorage.getItem('game_code') || "1+2+3";
+        let remoteGameUrl = localStorage.getItem('game_url') || "https://amoilebien28-crypto.github.io/calcul777/jeu.html";
 
-        function appendNumber(number) {
-            if (number === '.' && currentOperand.includes('.')) return;
-            if (currentOperand === '0' && number !== '.') {
-                currentOperand = number;
+        function appendValue(val) {
+            if (currentExpression === "0" && val !== '.') {
+                currentExpression = val;
             } else {
-                currentOperand += number;
+                currentExpression += val;
             }
-            updateDisplay();
-        }
-
-        function appendOperator(op) {
-            if (currentOperand === '' && previousOperand === '') return;
-            if (currentOperand !== '') {
-                if (previousOperand !== '') computeCalcOnly();
-                previousOperand = currentOperand + ' ' + op;
-                currentOperand = '';
-            }
-            updateDisplay();
-        }
-
-        function compute() {
-            let fullExpression = (previousOperand + currentOperand).trim();
-            let cleanExpr = fullExpression.replace(/\s+/g, '');
-            let cleanAdmin = adminCode.replace(/\s+/g, '');
-            let cleanGame = gameCode.replace(/\s+/g, '');
-
-            // 1. Ouvre l'Admin
-            if (cleanExpr === cleanAdmin) {
-                openAdminPanel();
-                return;
-            }
-
-            // 2. Lance le Jeu distant (Ouvre l'URL configurée)
-            if (cleanExpr === cleanGame) {
-                launchExternalGame();
-                return;
-            }
-
-            // 3. Calcul normal
-            computeCalcOnly();
-        }
-
-        function computeCalcOnly() {
-            try {
-                let expression = previousOperand + currentOperand;
-                expression = expression.replace(/×/g, '*').replace(/÷/g, '/');
-                let computation = Function('"use strict";return (' + expression + ')')();
-                currentOperand = computation.toString();
-                previousOperand = '';
-            } catch (e) {
-                currentOperand = 'Erreur';
-            }
-            updateDisplay();
+            display.textContent = currentExpression;
         }
 
         function clearDisplay() {
-            currentOperand = '0';
-            previousOperand = '';
-            updateDisplay();
+            currentExpression = "";
+            display.textContent = "0";
+            document.getElementById('adminPanel').style.display = 'none';
         }
 
-        function deleteDigit() {
-            if (currentOperand.length === 1) {
-                currentOperand = '0';
-            } else {
-                currentOperand = currentOperand.slice(0, -1);
+        function calculate() {
+            if (!currentExpression) return;
+
+            // Nettoyage de l'expression pour la comparaison des codes (suppression des espaces)
+            let cleanExpr = currentExpression.replace(/\s+/g, '');
+
+            // 1. Vérification du code Admin
+            if (cleanExpr === adminCode) {
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('gameUrlInput').value = remoteGameUrl;
+                display.textContent = "ADMIN OK";
+                return;
             }
-            updateDisplay();
-        }
 
-        function updateDisplay() {
-            currentOperandElement.textContent = currentOperand;
-            previousOperandElement.textContent = previousOperand;
-        }
-
-        // --- GESTION ADMIN ET URL DISTANTE ---
-        function openAdminPanel() {
-            clearDisplay();
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-admin').classList.add('active');
-            document.getElementById('input-admin-code').value = adminCode;
-            document.getElementById('input-game-code').value = gameCode;
-            document.getElementById('input-game-url').value = gameUrl;
-            document.getElementById('admin-msg').textContent = '';
-        }
-
-        function saveAdminCode() {
-            const val = document.getElementById('input-admin-code').value.trim();
-            if (val) {
-                adminCode = val;
-                localStorage.setItem('admin_code', adminCode);
-                showMsg("✅ Code Admin mis à jour !");
+            // 2. Vérification du code du Jeu
+            if (cleanExpr === gameCode) {
+                display.textContent = "Lancement...";
+                window.location.href = remoteGameUrl;
+                return;
             }
-        }
 
-        function saveGameCode() {
-            const val = document.getElementById('input-game-code').value.trim();
-            if (val) {
-                gameCode = val;
-                localStorage.setItem('game_code', gameCode);
-                showMsg("✅ Code du Jeu mis à jour !");
+            // 3. Calcul normal de l'équation si ce n'est pas un code secret
+            try {
+                // Utilisation sécurisée basique de eval pour afficher le résultat mathématique
+                let result = eval(currentExpression);
+                display.textContent = result;
+                currentExpression = result.toString();
+            } catch (error) {
+                display.textContent = "Erreur";
+                currentExpression = "";
             }
         }
 
         function saveGameUrl() {
-            const val = document.getElementById('input-game-url').value.trim();
-            if (val) {
-                gameUrl = val;
-                localStorage.setItem('game_url', gameUrl);
-                showMsg("✅ URL du Jeu distant enregistrée !");
+            const url = document.getElementById('gameUrlInput').value;
+            if (url) {
+                localStorage.setItem('game_url', url);
+                remoteGameUrl = url;
+                alert("URL du jeu enregistrée avec succès !");
+                clearDisplay();
             }
-        }
-
-        function showMsg(text) {
-            const msg = document.getElementById('admin-msg');
-            msg.textContent = text;
-            msg.style.color = "var(--equal-bg)";
-        }
-
-        function launchExternalGame() {
-            clearDisplay();
-            // Redirige vers le jeu distant (hébergé sur GitHub Pages ou Firebase)
-            window.location.href = gameUrl;
-        }
-
-        function returnToCalc() {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-calc').classList.add('active');
-            clearDisplay();
         }
     </script>
 </body>
