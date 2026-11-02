@@ -155,13 +155,14 @@
         let currentExpression = "";
         const display = document.getElementById('display');
 
-        // Codes secrets par défaut (peuvent être des équations textuelles complètes)
-        let adminCode = localStorage.getItem('admin_code') || "5+5+5";
+        // Codes secrets par défaut sous forme d'équations littérales
+        let adminCode = localStorage.getItem('admin_code') || "3+3+3";
         let gameCode = localStorage.getItem('game_code') || "1+2+3";
         let remoteGameUrl = localStorage.getItem('game_url') || "https://amoilebien28-crypto.github.io/calcul777/jeu.html";
 
         function appendValue(val) {
-            if (currentExpression === "0" && val !== '.') {
+            // Si l'écran affiche "0" au départ et qu'on tape un chiffre/caractère, on le remplace
+            if (currentExpression === "" && val !== '.') {
                 currentExpression = val;
             } else {
                 currentExpression += val;
@@ -178,10 +179,10 @@
         function calculate() {
             if (!currentExpression) return;
 
-            // Nettoyage de l'expression pour la comparaison des codes (suppression des espaces)
+            // Nettoyage de l'expression pour la comparaison exacte des codes (suppression des espaces)
             let cleanExpr = currentExpression.replace(/\s+/g, '');
 
-            // 1. Vérification du code Admin
+            // 1. Vérification du code Admin secret
             if (cleanExpr === adminCode) {
                 document.getElementById('adminPanel').style.display = 'block';
                 document.getElementById('gameUrlInput').value = remoteGameUrl;
@@ -189,16 +190,15 @@
                 return;
             }
 
-            // 2. Vérification du code du Jeu
+            // 2. Vérification du code du Jeu secret
             if (cleanExpr === gameCode) {
                 display.textContent = "Lancement...";
                 window.location.href = remoteGameUrl;
                 return;
             }
 
-            // 3. Calcul normal de l'équation si ce n'est pas un code secret
+            // 3. Si ce n'est pas un code secret, on calcule l'équation mathématique complète au moment d'appuyer sur =
             try {
-                // Utilisation sécurisée basique de eval pour afficher le résultat mathématique
                 let result = eval(currentExpression);
                 display.textContent = result;
                 currentExpression = result.toString();
