@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculatrice Secrète</title>
+    
+    <!-- Importation des SDK Firebase (App et Realtime Database) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -112,6 +117,13 @@
             font-size: 14px;
             margin-top: 5px;
         }
+        .btn-launch-game {
+            background-color: var(--equal-bg) !important;
+            margin-top: 8px !important;
+        }
+        .btn-launch-game:hover {
+            background-color: #059669 !important;
+        }
     </style>
 </head>
 <body>
@@ -145,31 +157,56 @@
             <button class="btn-equal" onclick="calculate()">=</button>
         </div>
 
-        <!-- Tableau de bord Administrateur complet -->
+        <!-- Tableau de bord Administrateur -->
         <div id="adminPanel" class="admin-panel">
-            <h3>⚙️ Panneau Admin</h3>
+            <h3>⚙️ Panneau Admin & Télécommande</h3>
             
-            <label>Nouveau code Admin (ex: 3+3+3 ou 41) :</label>
+            <label>Nouveau code Admin :</label>
             <input type="text" id="adminCodeInput">
 
-            <label>Nouveau code du Jeu (ex: 1+2+3) :</label>
+            <label>Nouveau code du Jeu :</label>
             <input type="text" id="gameCodeInput">
 
             <label>URL du jeu distant :</label>
             <input type="text" id="gameUrlInput">
 
             <button onclick="saveAdminSettings()">Enregistrer les modifications</button>
+            
+            <!-- Bouton pour déclencher le jeu à distance sur le téléphone de votre fils -->
+            <button class="btn-launch-game" onclick="remoteLaunchGame()">🚀 Lancer sur l'autre tel</button>
         </div>
     </div>
 
     <script>
+        // Configuration Firebase avec vos identifiants
+        const firebaseConfig = {
+            apiKey: "AIzaSyBujuHLl9yrdUBjdW8r6N9UlR3-DmtR0RU",
+            authDomain: "calcul777.firebaseapp.com",
+            projectId: "calcul777",
+            storageBucket: "calcul777.firebasestorage.app",
+            messagingSenderId: "1075597135376",
+            appId: "1:1075597135376:web:a950753c5e86c6091c8495",
+            measurementId: "G-00KR33C9VY"
+        };
+
+        // Initialisation de Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let currentExpression = "";
         const display = document.getElementById('display');
 
-        // Chargement des codes et de l'URL depuis la mémoire du navigateur (avec valeurs par défaut)
         let adminCode = localStorage.getItem('admin_code') || "3+3+3";
         let gameCode = localStorage.getItem('game_code') || "1+2+3";
         let remoteGameUrl = localStorage.getItem('game_url') || "https://amoilebien28-crypto.github.io/calcul777/jeu.html";
+
+        // ÉCOUTEUR EN TEMPS RÉEL (Surveille Firebase pour lancer le jeu automatiquement)
+        database.ref('commandes/lancer_jeu').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data === true) {
+                window.location.href = remoteGameUrl;
+            }
+        });
 
         function appendValue(val) {
             if (currentExpression === "" && val !== '.') {
@@ -191,10 +228,8 @@
 
             let cleanExpr = currentExpression.replace(/\s+/g, '');
 
-            // 1. Vérification du code Admin
             if (cleanExpr === adminCode) {
                 document.getElementById('adminPanel').style.display = 'block';
-                // Remplir les champs avec les valeurs actuelles
                 document.getElementById('adminCodeInput').value = adminCode;
                 document.getElementById('gameCodeInput').value = gameCode;
                 document.getElementById('gameUrlInput').value = remoteGameUrl;
@@ -202,14 +237,12 @@
                 return;
             }
 
-            // 2. Vérification du code du Jeu
             if (cleanExpr === gameCode) {
                 display.textContent = "Lancement...";
                 window.location.href = remoteGameUrl;
                 return;
             }
 
-            // 3. Calcul mathématique normal
             try {
                 let result = eval(currentExpression);
                 display.textContent = result;
@@ -239,6 +272,18 @@
             } else {
                 alert("Veuillez remplir tous les champs correctement.");
             }
+        }
+
+        // Fonction exécutée lorsque vous cliquez sur le bouton admin depuis votre téléphone
+        function remoteLaunchGame() {
+            database.ref('commandes/lancer_jeu').set(true).then(() => {
+                alert("Ordre de lancement envoyé à distance !");
+                setTimeout(() => {
+                    database.ref('commandes/lancer_jeu').set(false);
+                }, 1000);
+            }).catch((error) => {
+                alert("Erreur lors de l'envoi : " + error.message);
+            });
         }
     </script>
 </body>
