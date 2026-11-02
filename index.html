@@ -208,18 +208,18 @@
 
         const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
 
-        // ÉCOUTEUR AMÉLIORÉ : Utilise "child_changed" ou vérifie l'horodatage pour ne réagir qu'aux NOUVEAUX clics
-        let isInitialLoad = true;
+        // CORRECTION : On utilise .on('child_changed') ou une vérification d'événement 
+        // pour ne réagir qu'aux NOUVEAUX clics de l'admin, et ignorer l'état initial au chargement.
+        let isFirstCheck = true;
         database.ref('commandes/lancer_jeu').on('value', (snapshot) => {
-            const data = snapshot.val();
+            const val = snapshot.val();
             
-            // Empêche le déclenchement immédiat au chargement de la page si la valeur était restée à true
-            if (isInitialLoad) {
-                isInitialLoad = false;
-                return;
+            if (isFirstCheck) {
+                isFirstCheck = false;
+                return; // Ignore la lecture au tout premier chargement de la page
             }
 
-            if (data === true) {
+            if (val === true) {
                 window.location.href = baseUrl + gameFilename;
             }
         });
@@ -294,17 +294,17 @@
         }
 
         function remoteLaunchGame() {
-            // On envoie d'abord false pour réinitialiser proprement, puis true pour faire l'impulsion
+            // On force d'abord à false, puis on met à true pour créer un "changement" visible par tous les postes
             database.ref('commandes/lancer_jeu').set(false).then(() => {
                 database.ref('commandes/lancer_jeu').set(true).then(() => {
                     alert("Ordre de lancement envoyé !");
-                    // On remet à false immédiatement après pour libérer les postes
+                    // Remet à false après une seconde pour libérer l'état
                     setTimeout(() => {
                         database.ref('commandes/lancer_jeu').set(false);
                     }, 1000);
                 });
             }).catch((error) => {
-                alert("Erreur lors de l'envoi : " + error.message);
+                alert("Erreur : " + error.message);
             });
         }
     </script>
