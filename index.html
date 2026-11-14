@@ -203,7 +203,7 @@
         let mediaRecorder;
         let audioChunks = [];
         let audioBlob = null;
-        let mediaStream = null; // متغير لحفظ مسار الميكروفون وإغلاقه لاحقاً
+        let mediaStream = null;
 
         const phrases = [
             "ألو، بالله نحب نسأل على سوم الكرهبة والصيانة قداش تكلف في الشهر؟",
@@ -383,7 +383,6 @@
             }
         };
 
-        // Voice Recording Functions with Stream Closing Fix
         window.startRecording = async function() {
             audioChunks = [];
             try {
@@ -417,7 +416,6 @@
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 
-                // 🛑 الحل الجذري لإيقاف الميكروفون وإطفاء الأيقونة في الويندوز والمتصفح
                 if (mediaStream) {
                     mediaStream.getTracks().forEach(track => track.stop());
                 }
@@ -438,9 +436,12 @@
             try {
                 const fileName = `submissions/${currentUser.username}_${Date.now()}.webm`;
                 const fileRef = storageRef(storage, fileName);
+                
+                // رفع الأوديو للـ Storage
                 await uploadBytes(fileRef, audioBlob);
                 const audioDownloadUrl = await getDownloadURL(fileRef);
 
+                // حفظ بيانات المهمة في Firestore
                 await addDoc(collection(db, "submissions"), {
                     username: currentUser.username,
                     phrase: phrases[currentPhraseIndex],
@@ -449,6 +450,7 @@
                     timestamp: new Date().toISOString()
                 });
 
+                // تحديث رصيد المستخدم
                 const userRef = doc(db, "users", currentUserId);
                 await updateDoc(userRef, { balance: increment(0.200) });
                 currentUser.balance = (currentUser.balance || 0) + 0.200;
@@ -468,7 +470,7 @@
 
             } catch (error) {
                 console.error("Error submitting audio:", error);
-                alert("حدث خطأ أثناء حفظ التسجيل في قاعدة البيانات.");
+                alert("حدث خطأ أثناء الرفع: " + error.message);
                 submitBtn.textContent = "إرسال التسجيل وكسب المكافأة (0.200 د.ت)";
                 submitBtn.disabled = false;
             }
@@ -492,7 +494,7 @@
                 msgDiv.textContent = `تم بنجاح إنشاء المستخدم: ${newUsername}`;
                 msgDiv.classList.remove('hidden');
                 document.getElementById('new-username').value = '';
-                document.getElementById('new-password').value.trim = '';
+                document.getElementById('new-password').value = '';
                 
                 loadAdminPanelData();
                 setTimeout(() => msgDiv.classList.add('hidden'), 4000);
