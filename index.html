@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة المهام الصوتية - MicroTasks TN</title>
+    <title>منصة المهام الصوتية - VoiceTN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Cairo', sans-serif; } </style>
@@ -146,7 +146,12 @@
 
             <!-- Users Table with Balances & Password Modify -->
             <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">📋 قائمة المستخدمين والأرصدة</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-800">📋 قائمة المستخدمين والأرصدة</h3>
+                    <button onclick="loadAdminPanelData()" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center gap-1">
+                        🔄 تحديث القائمة
+                    </button>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-right border-collapse">
                         <thead>
@@ -198,6 +203,7 @@
         let mediaRecorder;
         let audioChunks = [];
         let audioBlob = null;
+        let mediaStream = null; // متغير لحفظ مسار الميكروفون وإغلاقه لاحقاً
 
         const phrases = [
             "ألو، بالله نحب نسأل على سوم الكرهبة والصيانة قداش تكلف في الشهر؟",
@@ -219,14 +225,12 @@
                 currentUser = { username: 'admin', role: 'admin' };
                 currentUserId = 'admin_local';
 
-                // Change UI to Admin Distinct Theme
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('user-info').classList.remove('hidden');
                 document.getElementById('display-username').textContent = '👑 مدير النظام (Admin)';
                 document.getElementById('balance-container').classList.add('hidden');
                 document.getElementById('admin-dashboard-section').classList.remove('hidden');
                 
-                // Style Header for Admin
                 document.getElementById('main-header').classList.add('bg-slate-900', 'text-white');
                 document.getElementById('header-badge').className = 'bg-amber-500 text-slate-950 font-bold p-2 rounded-xl text-lg';
                 document.getElementById('header-title').className = 'font-bold text-xl text-white hidden sm:inline';
@@ -275,44 +279,54 @@
             document.getElementById('login-section').classList.remove('hidden');
             document.getElementById('login-form').reset();
 
-            // Reset Header to normal theme
             document.getElementById('main-header').classList.remove('bg-slate-900', 'text-white');
             document.getElementById('main-header').classList.add('bg-white', 'text-slate-800');
             document.getElementById('header-badge').className = 'bg-indigo-600 text-white font-bold p-2 rounded-xl text-lg';
             document.getElementById('header-title').className = 'font-bold text-xl text-slate-700 hidden sm:inline';
         };
 
-        // Load Admin Statistics and Users Table
-        async function loadAdminPanelData() {
+        window.loadAdminPanelData = async function() {
             try {
-                // Fetch Users
-                const usersSnap = await getDocs(collection(db, "users"));
-                const subsSnap = await getDocs(collection(db, "submissions"));
-
-                document.getElementById('stat-total-users').textContent = usersSnap.size;
-                document.getElementById('stat-total-submissions').textContent = subsSnap.size;
-
+                let totalUsers = 0;
+                let totalSubs = 0;
                 const tbody = document.getElementById('users-table-body');
                 tbody.innerHTML = '';
 
-                usersSnap.forEach((docSnap) => {
-                    const u = docSnap.data();
-                    const docId = docSnap.id;
-                    const tr = document.createElement('tr');
-                    tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition';
-                    tr.innerHTML = `
-                        <td class="p-3 font-semibold text-slate-700">${u.username || '-'}</td>
-                        <td class="p-3 text-slate-500 font-mono">${u.password || '-'}</td>
-                        <td class="p-3 font-bold text-emerald-600">${(u.balance || 0).toFixed(3)} د.ت</td>
-                        <td class="p-3"><span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-1 rounded-full font-bold">${u.role || 'worker'}</span></td>
-                        <td class="p-3 text-center">
-                            <button onclick="promptChangePassword('${docId}', '${u.username}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg transition">
-                                تعديل كلمة السر 🔑
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                try {
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    totalUsers = usersSnap.size;
+                    usersSnap.forEach((docSnap) => {
+                        const u = docSnap.data();
+                        const docId = docSnap.id;
+                        const tr = document.createElement('tr');
+                        tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition';
+                        tr.innerHTML = `
+                            <td class="p-3 font-semibold text-slate-700">${u.username || '-'}</td>
+                            <td class="p-3 text-slate-500 font-mono">${u.password || '-'}</td>
+                            <td class="p-3 font-bold text-emerald-600">${(u.balance || 0).toFixed(3)} د.ت</td>
+                            <td class="p-3"><span class="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-1 rounded-full font-bold">${u.role || 'worker'}</span></td>
+                            <td class="p-3 text-center">
+                                <button onclick="promptChangePassword('${docId}', '${u.username}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                                    تعديل كلمة السر 🔑
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch (e) {
+                    console.error("Error fetching users:", e);
+                }
+
+                try {
+                    const subsSnap = await getDocs(collection(db, "submissions"));
+                    totalSubs = subsSnap.size;
+                } catch (e) {
+                    console.error("Error fetching submissions:", e);
+                }
+
+                document.getElementById('stat-total-users').textContent = totalUsers;
+                document.getElementById('stat-total-submissions').textContent = totalSubs;
+
             } catch (err) {
                 console.error("Error loading admin data:", err);
             }
@@ -333,20 +347,26 @@
             }
         };
 
-        // Export All Data Backup (JSON format for AI companies)
         window.exportDatabaseBackup = async function() {
             try {
-                const usersSnap = await getDocs(collection(db, "users"));
-                const subsSnap = await getDocs(collection(db, "submissions"));
+                let usersList = [];
+                let subsList = [];
+                
+                try {
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    usersSnap.forEach(d => usersList.push({ id: d.id, ...d.data() }));
+                } catch(e) { console.error(e); }
+
+                try {
+                    const subsSnap = await getDocs(collection(db, "submissions"));
+                    subsSnap.forEach(d => subsList.push({ id: d.id, ...d.data() }));
+                } catch(e) { console.error(e); }
 
                 const backupData = {
                     exportDate: new Date().toISOString(),
-                    users: [],
-                    submissions: []
+                    users: usersList,
+                    submissions: subsList
                 };
-
-                usersSnap.forEach(d => backupData.users.push(d.data()));
-                subsSnap.forEach(d => backupData.submissions.push(d.data()));
 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
                 const downloadAnchor = document.createElement('a');
@@ -363,12 +383,12 @@
             }
         };
 
-        // Voice Recording Functions
+        // Voice Recording Functions with Stream Closing Fix
         window.startRecording = async function() {
             audioChunks = [];
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(mediaStream);
                 
                 mediaRecorder.ondataavailable = (event) => {
                     audioChunks.push(event.data);
@@ -396,9 +416,15 @@
         window.stopRecording = function() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
+                
+                // 🛑 الحل الجذري لإيقاف الميكروفون وإطفاء الأيقونة في الويندوز والمتصفح
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+
                 document.getElementById('stop-rec-btn').classList.add('hidden');
                 document.getElementById('start-rec-btn').classList.remove('hidden');
-                document.getElementById('rec-status').textContent = '✅ تم إيقاف التسجيل. يمكنك الاستماع أو الإرسال.';
+                document.getElementById('rec-status').textContent = '✅ تم إيقاف التسجيل وإغلاق الميكروفون. يمكنك الاستماع أو الإرسال.';
             }
         };
 
@@ -466,9 +492,9 @@
                 msgDiv.textContent = `تم بنجاح إنشاء المستخدم: ${newUsername}`;
                 msgDiv.classList.remove('hidden');
                 document.getElementById('new-username').value = '';
-                document.getElementById('new-password').value = '';
+                document.getElementById('new-password').value.trim = '';
                 
-                loadAdminPanelData(); // Refresh Admin Table & Stats
+                loadAdminPanelData();
                 setTimeout(() => msgDiv.classList.add('hidden'), 4000);
             } catch (error) {
                 console.error(error);
