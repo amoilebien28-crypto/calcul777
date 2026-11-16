@@ -70,7 +70,7 @@
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6">
                     <span class="block text-xs text-slate-400 mb-2">اقرأ الجملة هذه بصوتك:</span>
                     <p id="task-phrase" class="text-xl font-bold text-slate-800 leading-relaxed">
-                        "ألو، بالله نحب نسأل على سوم الكرهبة والصيانة قداش تكلف في المداخيل الشهرية؟"
+                        جاري تحميل المهام...
                     </p>
                 </div>
 
@@ -113,7 +113,7 @@
                 <div>
                     <span class="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider">👑 لوحة التحكم الإدارية</span>
                     <h2 class="text-2xl font-bold mt-2">إدارة المنصة والمستخدمين</h2>
-                    <p class="text-slate-400 text-sm">متابعة الأرصدة، الاستماع للتسجيلات، وتصدير البيانات.</p>
+                    <p class="text-slate-400 text-sm">متابعة الأرصدة، إضافة المهام، الاستماع للتسجيلات، وتصدير البيانات.</p>
                 </div>
                 <button onclick="exportDatabaseBackup()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl transition shadow-lg flex items-center gap-2 text-sm">
                     📥 تحميل السجل الكامل (JSON Backup)
@@ -121,7 +121,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 flex items-center justify-between">
                     <div>
                         <span class="text-slate-500 text-sm block">المستخدمين</span>
@@ -131,7 +131,14 @@
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 flex items-center justify-between">
                     <div>
-                        <span class="text-slate-500 text-sm block">التسجيلات الصوتية</span>
+                        <span class="text-slate-500 text-sm block">المهام المتاحة</span>
+                        <span id="stat-total-tasks" class="text-3xl font-black text-amber-600">0</span>
+                    </div>
+                    <span class="bg-amber-50 text-amber-600 p-4 rounded-xl text-2xl">📝</span>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <span class="text-slate-500 text-sm block">التسجيلات</span>
                         <span id="stat-total-submissions" class="text-3xl font-black text-emerald-600">0</span>
                     </div>
                     <span class="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-2xl">🎙️</span>
@@ -143,6 +150,19 @@
                     </div>
                     <span class="bg-violet-50 text-violet-600 p-4 rounded-xl text-2xl">💸</span>
                 </div>
+            </div>
+
+            <!-- Bulk Tasks Adder (New Feature) -->
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-800 mb-2">📥 إضافة مهام جماعية (Bulk Tasks)</h3>
+                <p class="text-xs text-slate-500 mb-4">انسخ آلاف الجمل (كل جملة في سطر مستقل) والصقها هنا، ثم اضغط إضافة.</p>
+                <form onsubmit="addBulkTasks(event)" class="space-y-4">
+                    <textarea id="bulk-phrases" rows="4" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm font-mono" placeholder="الجملة الأولى هنا...&#10;الجملة الثانية هنا..."></textarea>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md text-sm">
+                        إضافة دفعة المهام للمنصة
+                    </button>
+                </form>
+                <div id="bulk-msg" class="text-emerald-600 text-sm mt-3 hidden font-bold"></div>
             </div>
 
             <!-- Create User -->
@@ -218,7 +238,7 @@
 
     <footer class="text-center py-4 text-xs text-slate-400">&copy; 2026 VoiceTN Platform. جميع الحقوق محفوظة.</footer>
 
-    <!-- Firebase Logic & Session Persistence -->
+    <!-- Firebase Logic & Dynamic Tasks Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, increment, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -244,16 +264,10 @@
         let audioBlob = null;
         let mediaStream = null;
 
-        const phrases = [
-            "ألو، بالله نحب نسأل على سوم الكرهبة والصيانة قداش تكلف في الشهر؟",
-            "وينها محطة اللواج من هنا، قداش تبعد عليا؟",
-            "السلام عليكم، بربي فمة دواء مقطوع في الصيدلية ولا موجود؟",
-            "اليوم الطقس سخون برشا، الواحد لازم يمشي للبحر في دجربة.",
-            "بربي كيفاش نعمل باش نجدد الباسبور وإلا بطاقة عدد ثلاثة؟"
-        ];
-        let currentPhraseIndex = 0;
+        let taskList = [];
+        let currentTaskIndex = 0;
 
-        // Restore Session on Page Load (Actualiser fix)
+        // Restore Session on Page Load
         window.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('voiceTN_user');
             const savedUserId = localStorage.getItem('voiceTN_userId');
@@ -280,6 +294,7 @@
                     document.getElementById('balance-container').classList.remove('hidden');
                     document.getElementById('dashboard-section').classList.remove('hidden');
                     updateBalanceDisplay(currentUser.balance || 0);
+                    fetchTasksForWorker();
                 }
             }
         });
@@ -295,7 +310,6 @@
                 currentUser = { username: 'admin', role: 'admin' };
                 currentUserId = 'admin_local';
 
-                // Save session in localStorage
                 localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
                 localStorage.setItem('voiceTN_userId', currentUserId);
 
@@ -329,7 +343,6 @@
                     currentUser = docSnap.data();
                 });
 
-                // Save session in localStorage
                 localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
                 localStorage.setItem('voiceTN_userId', currentUserId);
 
@@ -340,16 +353,16 @@
                 document.getElementById('balance-container').classList.remove('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
                 updateBalanceDisplay(currentUser.balance || 0);
+                fetchTasksForWorker();
 
             } catch (error) {
                 console.error("Login Error: ", error);
                 errorDiv.textContent = "حدث خطأ في الاتصال بقاعدة البيانات.";
-                errorDiv.classList.remove('hidden');
+                errorDiv.classList.add('hidden');
             }
         };
 
         window.logout = function() {
-            // Clear session from localStorage
             localStorage.removeItem('voiceTN_user');
             localStorage.removeItem('voiceTN_userId');
 
@@ -367,9 +380,77 @@
             document.getElementById('header-title').className = 'font-bold text-xl text-slate-700 hidden sm:inline';
         };
 
+        // Fetch dynamic tasks from Firestore for Workers
+        async function fetchTasksForWorker() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "tasks"));
+                taskList = [];
+                querySnapshot.forEach((docSnap) => {
+                    taskList.push(docSnap.data().phrase);
+                });
+
+                if (taskList.length > 0) {
+                    currentTaskIndex = 0;
+                    displayNextTask();
+                } else {
+                    document.getElementById('task-phrase').textContent = "لا توجد مهام متاحة حالياً. الرجاء انتظار المدير لإضافة جمل جديدة.";
+                    document.getElementById('start-rec-btn').classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("Error fetching tasks:", e);
+                document.getElementById('task-phrase').textContent = "خطأ في جلب المهام من قاعدة البيانات.";
+            }
+        }
+
+        function displayNextTask() {
+            if (taskList.length > 0) {
+                const phrase = taskList[currentTaskIndex % taskList.length];
+                document.getElementById('task-phrase').textContent = `"${phrase}"`;
+                document.getElementById('start-rec-btn').classList.remove('hidden');
+            }
+        }
+
+        // Bulk Add Tasks from Admin Panel
+        window.addBulkTasks = async function(event) {
+            event.preventDefault();
+            const text = document.getElementById('bulk-phrases').value.trim();
+            const msgDiv = document.getElementById('bulk-msg');
+            if (!text) return;
+
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) return;
+
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = "جاري الإضافة...";
+            submitBtn.disabled = true;
+
+            try {
+                let count = 0;
+                for (const line of lines) {
+                    await addDoc(collection(db, "tasks"), {
+                        phrase: line,
+                        createdAt: new Date().toISOString()
+                    });
+                    count++;
+                }
+
+                msgDiv.textContent = `تم بنجاح إضافة ${count} مهمة جديدة إلى المنصة!`;
+                msgDiv.classList.remove('hidden');
+                document.getElementById('bulk-phrases').value = '';
+                loadAdminPanelData();
+                setTimeout(() => msgDiv.classList.add('hidden'), 4000);
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء إضافة المهام الجماعية.");
+            } finally {
+                submitBtn.textContent = "إضافة دفعة المهام للمنصة";
+                submitBtn.disabled = false;
+            }
+        };
+
         window.loadAdminPanelData = async function() {
             try {
-                let totalUsers = 0, totalSubs = 0, totalPayouts = 0;
+                let totalUsers = 0, totalTasks = 0, totalSubs = 0, totalPayouts = 0;
                 const tbody = document.getElementById('users-table-body');
                 const subsTbody = document.getElementById('submissions-table-body');
                 const payoutsTbody = document.getElementById('payouts-table-body');
@@ -400,6 +481,12 @@
                         `;
                         tbody.appendChild(tr);
                     });
+                } catch (e) { console.error(e); }
+
+                // Load Tasks count
+                try {
+                    const tasksSnap = await getDocs(collection(db, "tasks"));
+                    totalTasks = tasksSnap.size;
                 } catch (e) { console.error(e); }
 
                 // Load Submissions & Audio Players
@@ -441,6 +528,7 @@
                 } catch (e) { console.error(e); }
 
                 document.getElementById('stat-total-users').textContent = totalUsers;
+                document.getElementById('stat-total-tasks').textContent = totalTasks;
                 document.getElementById('stat-total-submissions').textContent = totalSubs;
                 document.getElementById('stat-total-payouts').textContent = totalPayouts;
 
@@ -483,10 +571,14 @@
 
         window.exportDatabaseBackup = async function() {
             try {
-                let usersList = [], subsList = [], payoutsList = [];
+                let usersList = [], tasksList = [], subsList = [], payoutsList = [];
                 try {
                     const usersSnap = await getDocs(collection(db, "users"));
                     usersSnap.forEach(d => usersList.push({ id: d.id, ...d.data() }));
+                } catch(e) {}
+                try {
+                    const tasksSnap = await getDocs(collection(db, "tasks"));
+                    tasksSnap.forEach(d => tasksList.push({ id: d.id, ...d.data() }));
                 } catch(e) {}
                 try {
                     const subsSnap = await getDocs(collection(db, "submissions"));
@@ -500,6 +592,7 @@
                 const backupData = {
                     exportDate: new Date().toISOString(),
                     users: usersList,
+                    tasks: tasksList,
                     submissions: subsList,
                     payouts: payoutsList
                 };
@@ -566,10 +659,11 @@
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = async function() {
                     const base64Audio = reader.result;
+                    const currentPhrase = taskList.length > 0 ? taskList[currentTaskIndex % taskList.length] : "مهمة صوتية";
 
                     await addDoc(collection(db, "submissions"), {
                         username: currentUser.username,
-                        phrase: phrases[currentPhraseIndex],
+                        phrase: currentPhrase,
                         audioBase64: base64Audio,
                         reward: 0.200,
                         timestamp: new Date().toISOString()
@@ -579,15 +673,13 @@
                     await updateDoc(userRef, { balance: increment(0.200) });
                     currentUser.balance = (currentUser.balance || 0) + 0.200;
                     
-                    // Update session in localStorage with new balance
                     localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
-
                     updateBalanceDisplay(currentUser.balance);
 
                     alert("تم حفظ التسجيل الصوتي في الفايربيز وإضافة الرصيد بنجاح!");
                     
-                    currentPhraseIndex = (currentPhraseIndex + 1) % phrases.length;
-                    document.getElementById('task-phrase').textContent = `"${phrases[currentPhraseIndex]}"`;
+                    currentTaskIndex++;
+                    displayNextTask();
                     
                     audioBlob = null;
                     document.getElementById('audio-preview').classList.add('hidden');
