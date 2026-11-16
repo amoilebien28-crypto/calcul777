@@ -108,12 +108,12 @@
         </div>
 
         <!-- 3. Admin Dashboard Section -->
-        <div id="admin-dashboard-section" class="hidden w-full max-w-4xl space-y-6">
+        <div id="admin-dashboard-section" class="hidden w-full max-w-5xl space-y-6">
             <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4 border border-slate-800">
                 <div>
                     <span class="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider">👑 لوحة التحكم الإدارية</span>
                     <h2 class="text-2xl font-bold mt-2">إدارة المنصة والمستخدمين</h2>
-                    <p class="text-slate-400 text-sm">متابعة الأرصدة، طلبات السحب، وتصدير البيانات للذكاء الاصطناعي.</p>
+                    <p class="text-slate-400 text-sm">متابعة الأرصدة، الاستماع للتسجيلات، وتصدير البيانات.</p>
                 </div>
                 <button onclick="exportDatabaseBackup()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl transition shadow-lg flex items-center gap-2 text-sm">
                     📥 تحميل السجل الكامل (JSON Backup)
@@ -178,6 +178,26 @@
                 </div>
             </div>
 
+            <!-- Submissions Audio Player Table -->
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">🎙️ التسجيلات الصوتية المسجلة (الاستماع المباشر)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-sm">
+                                <th class="p-3">اسم المستخدم</th>
+                                <th class="p-3">الجملة المقروءة</th>
+                                <th class="p-3">التسجيل الصوتي (اسمع بالوحدة)</th>
+                                <th class="p-3">التاريخ والوقت</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissions-table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Payouts Table -->
             <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
                 <h3 class="text-lg font-bold text-slate-800 mb-4">💸 طلبات سحب الأرباح المعلقة</h3>
@@ -200,7 +220,7 @@
 
     <footer class="text-center py-4 text-xs text-slate-400">&copy; 2026 VoiceTN Platform. جميع الحقوق محفوظة.</footer>
 
-    <!-- Firebase Logic (Firestore Only - No Storage Needed) -->
+    <!-- Firebase Logic & Admin Panel Audio Players -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, increment, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -310,10 +330,14 @@
             try {
                 let totalUsers = 0, totalSubs = 0, totalPayouts = 0;
                 const tbody = document.getElementById('users-table-body');
+                const subsTbody = document.getElementById('submissions-table-body');
                 const payoutsTbody = document.getElementById('payouts-table-body');
+                
                 tbody.innerHTML = '';
+                subsTbody.innerHTML = '';
                 payoutsTbody.innerHTML = '';
 
+                // Load Users
                 try {
                     const usersSnap = await getDocs(collection(db, "users"));
                     totalUsers = usersSnap.size;
@@ -337,11 +361,27 @@
                     });
                 } catch (e) { console.error(e); }
 
+                // Load Submissions & Audio Players
                 try {
                     const subsSnap = await getDocs(collection(db, "submissions"));
                     totalSubs = subsSnap.size;
+                    subsSnap.forEach((docSnap) => {
+                        const s = docSnap.data();
+                        const tr = document.createElement('tr');
+                        tr.className = 'border-b border-slate-100 hover:bg-slate-50 transition';
+                        tr.innerHTML = `
+                            <td class="p-3 font-semibold text-slate-700">${s.username || '-'}</td>
+                            <td class="p-3 text-slate-600 text-xs max-w-xs truncate">${s.phrase || '-'}</td>
+                            <td class="p-3">
+                                ${s.audioBase64 ? `<audio controls src="${s.audioBase64}" class="w-48 h-9"></audio>` : '<span class="text-xs text-rose-500">لا يوجد صوت</span>'}
+                            </td>
+                            <td class="p-3 text-xs text-slate-400">${s.timestamp ? new Date(s.timestamp).toLocaleString() : '-'}</td>
+                        `;
+                        subsTbody.appendChild(tr);
+                    });
                 } catch (e) { console.error(e); }
 
+                // Load Payouts
                 try {
                     const payoutsSnap = await getDocs(collection(db, "payouts"));
                     totalPayouts = payoutsSnap.size;
@@ -473,7 +513,6 @@
             }
         };
 
-        // تحويل الصوت إلى Base64 وتخزينه مباشرة في Firestore (بدون Storage وبدون فلوس!)
         window.submitAudioTask = async function() {
             if (!audioBlob || !currentUserId) return;
             
@@ -482,22 +521,19 @@
             submitBtn.disabled = true;
 
             try {
-                // قراءة الـ Blob وتحويله إلى Base64 String
                 const reader = new FileReader();
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = async function() {
                     const base64Audio = reader.result;
 
-                    // حفظ البيانات والصوت مباشرة في جدول submissions على Firestore
                     await addDoc(collection(db, "submissions"), {
                         username: currentUser.username,
                         phrase: phrases[currentPhraseIndex],
-                        audioBase64: base64Audio, // الصوت مخزن كنص داخل القاعدة
+                        audioBase64: base64Audio,
                         reward: 0.200,
                         timestamp: new Date().toISOString()
                     });
 
-                    // تحديث رصيد المستخدم
                     const userRef = doc(db, "users", currentUserId);
                     await updateDoc(userRef, { balance: increment(0.200) });
                     currentUser.balance = (currentUser.balance || 0) + 0.200;
