@@ -191,9 +191,7 @@
                                 <th class="p-3">التاريخ والوقت</th>
                             </tr>
                         </thead>
-                        <tbody id="submissions-table-body" class="divide-y divide-slate-100 text-sm">
-                            <!-- Populated via JS -->
-                        </tbody>
+                        <tbody id="submissions-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
                     </table>
                 </div>
             </div>
@@ -220,7 +218,7 @@
 
     <footer class="text-center py-4 text-xs text-slate-400">&copy; 2026 VoiceTN Platform. جميع الحقوق محفوظة.</footer>
 
-    <!-- Firebase Logic & Admin Panel Audio Players -->
+    <!-- Firebase Logic & Session Persistence -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, increment, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -255,6 +253,37 @@
         ];
         let currentPhraseIndex = 0;
 
+        // Restore Session on Page Load (Actualiser fix)
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('voiceTN_user');
+            const savedUserId = localStorage.getItem('voiceTN_userId');
+            
+            if (savedUser && savedUserId) {
+                currentUser = JSON.parse(savedUser);
+                currentUserId = savedUserId;
+
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('user-info').classList.remove('hidden');
+
+                if (currentUser.role === 'admin') {
+                    document.getElementById('display-username').textContent = '👑 مدير النظام (Admin)';
+                    document.getElementById('balance-container').classList.add('hidden');
+                    document.getElementById('admin-dashboard-section').classList.remove('hidden');
+                    
+                    document.getElementById('main-header').classList.add('bg-slate-900', 'text-white');
+                    document.getElementById('header-badge').className = 'bg-amber-500 text-slate-950 font-bold p-2 rounded-xl text-lg';
+                    document.getElementById('header-title').className = 'font-bold text-xl text-white hidden sm:inline';
+
+                    loadAdminPanelData();
+                } else {
+                    document.getElementById('display-username').textContent = currentUser.username;
+                    document.getElementById('balance-container').classList.remove('hidden');
+                    document.getElementById('dashboard-section').classList.remove('hidden');
+                    updateBalanceDisplay(currentUser.balance || 0);
+                }
+            }
+        });
+
         window.handleLogin = async function(event) {
             event.preventDefault();
             const usernameInput = document.getElementById('username').value.trim();
@@ -265,6 +294,10 @@
             if (usernameInput === 'admin' && passwordInput === 'admin') {
                 currentUser = { username: 'admin', role: 'admin' };
                 currentUserId = 'admin_local';
+
+                // Save session in localStorage
+                localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
+                localStorage.setItem('voiceTN_userId', currentUserId);
 
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('user-info').classList.remove('hidden');
@@ -296,6 +329,10 @@
                     currentUser = docSnap.data();
                 });
 
+                // Save session in localStorage
+                localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
+                localStorage.setItem('voiceTN_userId', currentUserId);
+
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('user-info').classList.remove('hidden');
                 document.getElementById('display-username').textContent = currentUser.username;
@@ -312,6 +349,10 @@
         };
 
         window.logout = function() {
+            // Clear session from localStorage
+            localStorage.removeItem('voiceTN_user');
+            localStorage.removeItem('voiceTN_userId');
+
             currentUser = null;
             currentUserId = null;
             document.getElementById('dashboard-section').classList.add('hidden');
@@ -537,6 +578,10 @@
                     const userRef = doc(db, "users", currentUserId);
                     await updateDoc(userRef, { balance: increment(0.200) });
                     currentUser.balance = (currentUser.balance || 0) + 0.200;
+                    
+                    // Update session in localStorage with new balance
+                    localStorage.setItem('voiceTN_user', JSON.stringify(currentUser));
+
                     updateBalanceDisplay(currentUser.balance);
 
                     alert("تم حفظ التسجيل الصوتي في الفايربيز وإضافة الرصيد بنجاح!");
